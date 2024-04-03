@@ -10,7 +10,7 @@ func (bv ByteView) Len() int {
 	return len(bv.b)
 }
 
-// ByteSlice 缓存切片
+// ByteSlice 获得一份缓存副本
 func (bv ByteView) ByteSlice() []byte {
 	return cloneBytes(bv.b)
 }
