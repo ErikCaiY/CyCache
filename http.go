@@ -1,4 +1,4 @@
-package CyCache
+package main
 
 import (
 	CyCache "CyCache/SingleNode"

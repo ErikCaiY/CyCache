@@ -1,8 +1,7 @@
 package main
 
 import (
-	HttpServer "CyCache/HttpServer"
-	SingleNode "CyCache/SingleNode"
+	CyCache "CyCache/SingleNode"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,7 +14,7 @@ var db = map[string]string{
 }
 
 func main() {
-	SingleNode.NewGroup("scores", 2<<10, SingleNode.GetterFunc(
+	CyCache.NewGroup("scores", 2<<10, CyCache.GetterFunc(
 		func(key string) ([]byte, error) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := db[key]; ok {
@@ -25,7 +24,7 @@ func main() {
 		}))
 
 	addr := "localhost:8889"
-	peers := HttpServer.NewHTTPPool(addr)
+	peers := NewHTTPPool(addr)
 	log.Println("geecache is running at", addr)
 	log.Fatal(http.ListenAndServe(addr, peers))
 }
