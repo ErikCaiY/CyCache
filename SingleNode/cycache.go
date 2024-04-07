@@ -23,7 +23,7 @@ func (g GetterFunc) Get(key string) ([]byte, error) {
 // 提供给外界调用的类型，一个Group可以被认为是一个缓存的命名空间
 type Group struct {
 	name      string
-	getter    Getter // 缓存未命中时获取源数据的回调
+	getter    Getter // 缓存未命中时获取源数据
 	mainCache cache  // 并发缓存
 }
 
@@ -77,6 +77,7 @@ func (g *Group) load(key string) (value ByteView, err error) {
 	return g.getLocally(key)
 }
 
+// 从本地获取
 func (g *Group) getLocally(key string) (ByteView, error) {
 	bytes, err := g.getter.Get(key)
 	if err != nil {
@@ -88,6 +89,7 @@ func (g *Group) getLocally(key string) (ByteView, error) {
 	return value, nil
 }
 
+// 将本次未命中的值加入Group缓存
 func (g *Group) populateCache(key string, value ByteView) {
 	g.mainCache.add(key, value)
 }

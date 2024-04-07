@@ -26,7 +26,8 @@ var db = map[string]string{
 }
 
 func TestGet(t *testing.T) {
-	loadCounts := make(map[string]int, len(db))
+	loadCounts := make(map[string]int, len(db)) // 每个缓存未命中的情况
+
 	gee := NewGroup("scores", 2<<10, GetterFunc(
 		func(key string) ([]byte, error) {
 			log.Println("[SlowDB] search key", key)
@@ -47,6 +48,10 @@ func TestGet(t *testing.T) {
 		if _, err := gee.Get(k); err != nil || loadCounts[k] > 1 {
 			t.Fatalf("cache %s miss", k)
 		} // cache hit
+	}
+
+	if view, err := gee.Get("Tom"); err != nil || view.String() != db["Tom"] {
+		t.Fatal("failed to get value of Tom")
 	}
 
 	if view, err := gee.Get("unknown"); err == nil {
