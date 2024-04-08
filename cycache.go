@@ -1,7 +1,6 @@
 package CyCache
 
 import (
-	"CyCache/SingleNode"
 	"errors"
 	"log"
 	"sync"
@@ -24,8 +23,9 @@ func (g GetterFunc) Get(key string) ([]byte, error) {
 // 提供给外界调用的类型，一个Group可以被认为是一个缓存的命名空间
 type Group struct {
 	name      string
-	getter    Getter        // 缓存未命中时获取源数据
-	mainCache CyCache.cache // 并发缓存
+	getter    Getter // 缓存未命中时获取源数据
+	mainCache cache  // 并发缓存
+	peers     PeerPicker
 }
 
 var (
@@ -44,7 +44,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	g := &Group{
 		name:   name,
 		getter: getter,
-		mainCache: CyCache.cache{
+		mainCache: cache{
 			cacheBytes: cacheBytes,
 		},
 	}
@@ -74,9 +74,9 @@ func (g *Group) Get(key string) (ByteView, error) {
 	return g.load(key)
 }
 
-func (g *Group) load(key string) (value ByteView, err error) {
-	return g.getLocally(key)
-}
+//func (g *Group) load(key string) (value ByteView, err error) {
+//	return g.getLocally(key)
+//}
 
 // 从本地获取
 func (g *Group) getLocally(key string) (ByteView, error) {
@@ -93,4 +93,35 @@ func (g *Group) getLocally(key string) (ByteView, error) {
 // 将本次未命中的值加入Group缓存
 func (g *Group) populateCache(key string, value ByteView) {
 	g.mainCache.add(key, value)
+}
+
+// RegisterPeers 实现了 PeerPicker 接口的 HTTPPool 注入到 Group 中
+func (g *Group) RegisterPeers(peers PeerPicker) {
+	if g.peers != nil {
+		panic("RegisterPeerPicker called more than once")
+	}
+	g.peers = peers
+}
+
+// load 使用 PickPeer() 方法选择节点，若非本机节点，则调用 getFromPeer() 从远程获取。若是本机节点或失败，则回退到 getLocally()
+func (g *Group) load(key string) (value ByteView, err error) {
+	if g.peers != nil {
+		if peer, ok := g.peers.PickPeer(key); ok {
+			if value, err = g.getFromPeer(peer, key); err == nil {
+				return value, nil
+			}
+			log.Println("[GeeCache] Failed to get from peer", err)
+		}
+	}
+
+	return g.getLocally(key)
+}
+
+// 使用实现了 PeerGetter 接口的 httpGetter 从访问远程节点，获取缓存值
+func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
+	bytes, err := peer.Get(g.name, key)
+	if err != nil {
+		return ByteView{}, err
+	}
+	return ByteView{b: bytes}, nil
 }

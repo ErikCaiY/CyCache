@@ -1,19 +1,29 @@
 package CyCache
 
 import (
+	"CyCache/consistenthash"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 )
 
-const defaultBasePath = "/_cycache/"
+const (
+	defaultBasePath = "/_geecache/"
+	defaultReplicas = 50
+)
 
+// HTTPPool implements PeerPicker for a pool of HTTP peers.
 type HTTPPool struct {
-	self     string
-	basePath string
+	// this peer's base URL, e.g. "https://example.net:8000"
+	self        string
+	basePath    string
+	mu          sync.Mutex // guards peers and httpGetters
+	peers       *consistenthash.Map
+	httpGetters map[string]*httpGetter // keyed by e.g. "http://10.0.0.2:8008"
 }
 
 func NewHTTPPool(self string) *HTTPPool {
@@ -84,4 +94,29 @@ func (h *httpGetter) Get(group string, key string) ([]byte, error) {
 	return bytes, nil
 }
 
-var _PeerGetter = (*httpGetter)(nil)
+//var _PeerGetter = (*httpGetter)(nil)
+
+// Set updates the pool's list of peers.
+func (h *HTTPPool) Set(peers ...string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.peers = consistenthash.NewMap(defaultReplicas, nil)
+	h.peers.Add(peers...)
+	h.httpGetters = make(map[string]*httpGetter, len(peers))
+	for _, peer := range peers {
+		h.httpGetters[peer] = &httpGetter{baseURL: peer + h.basePath}
+	}
+}
+
+// PickPeer picks a peer according to key
+func (h *HTTPPool) PickPeer(key string) (PeerGetter, bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if peer := h.peers.Get(key); peer != "" && peer != h.self {
+		h.Log("Pick peer %s", peer)
+		return h.httpGetters[peer], true
+	}
+	return nil, false
+}
+
+//var _PeerPicker = (*HTTPPool)(nil)

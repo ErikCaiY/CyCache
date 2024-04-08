@@ -19,11 +19,11 @@ func TestGetter(t *testing.T) {
 }
 
 // 用一个 map 模拟耗时的数据库。
-var db = map[string]string{
-	"Tom":  "630",
-	"Jack": "589",
-	"Sam":  "567",
-}
+//var db = map[string]string{
+//	"Tom":  "630",
+//	"Jack": "589",
+//	"Sam":  "567",
+//}
 
 func TestGet(t *testing.T) {
 	loadCounts := make(map[string]int, len(db)) // 每个缓存未命中的情况
