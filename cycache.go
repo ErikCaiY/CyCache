@@ -1,6 +1,7 @@
 package CyCache
 
 import (
+	"CyCache/SingleNode"
 	"errors"
 	"log"
 	"sync"
@@ -23,8 +24,8 @@ func (g GetterFunc) Get(key string) ([]byte, error) {
 // 提供给外界调用的类型，一个Group可以被认为是一个缓存的命名空间
 type Group struct {
 	name      string
-	getter    Getter // 缓存未命中时获取源数据
-	mainCache cache  // 并发缓存
+	getter    Getter        // 缓存未命中时获取源数据
+	mainCache CyCache.cache // 并发缓存
 }
 
 var (
@@ -43,7 +44,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	g := &Group{
 		name:   name,
 		getter: getter,
-		mainCache: cache{
+		mainCache: CyCache.cache{
 			cacheBytes: cacheBytes,
 		},
 	}

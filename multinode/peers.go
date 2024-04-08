@@ -1,7 +1,7 @@
 package CyCache
 
 type PeerPicker interface {
-	// PickPeer 用于选择相应的节点
+	// PickPeer 用于选择相应的节点PeerGetter
 	PickPeer(key string) (peer PeerGetter, ok bool)
 }
 

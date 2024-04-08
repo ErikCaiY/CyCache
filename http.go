@@ -1,7 +1,6 @@
 package CyCache
 
 import (
-	CyCache "CyCache/SingleNode"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -43,7 +42,7 @@ func (h *HTTPPool) ServeHTTP(resWriter http.ResponseWriter, r *http.Request) {
 	groupName := parts[0]
 	key := parts[1]
 
-	group := CyCache.GetGroup(groupName)
+	group := GetGroup(groupName)
 	if group == nil {
 		http.Error(resWriter, "no such group: "+groupName, http.StatusNotFound)
 		return
